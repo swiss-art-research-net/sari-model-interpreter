@@ -5,25 +5,21 @@
 
     - id: artwork_genre
       label: Genre
+      optional: True
       query: '
         $subject crm:P2_has_type ?value .
         ?value crm:P2_has_type sari:genre ;
           rdfs:label ?label .        
       '
-      sources:
-        - id: zbz
-          field: 655$a
     
     - id: artwork_medium
       label: Medium
+      optional: True
       query: '
         $subject crm:P2_has_type ?value .
         ?value crm:P2_has_type sari:medium ;
           rdfs:label ?label .        
       '
-      sources:
-        - id: zbz
-          field: 245$h
 
     - id: work
       label: Work
@@ -39,16 +35,51 @@
           children:
             - id: work_creator
               label: Artist/Creator
+              optional: True
               query: '
                $subject crm:P14_carried_out_by ?value .
               '
 
-        - id: represented_place
+            - id: work_creator_with_role
+              label: Artist/Creator (role)
+              optional: True
+              query: '
+                $subject crm:P9_consists_of ?subcreation .
+                ?subcreation crm:P2_has_type ?subcreation_type ;
+                  crm:P14_carried_out_by ?subcreation_person .
+                ?subcreation_type rdfs:label ?subcreation_type_label .
+                ?subcreation_person rdfs:label ?subcreation_person_label .
+                BIND(CONCAT(?subcreation_person_label, " (" , ?subcreation_type_label, ")") as ?value)
+              '
+
+        - id: represented_actor
           label: Represented Place
+          optional: True
           query: '
             $subject crm:P138_represents ?value .
-            ?value a crm:E53_Place
+            ?value a crm:E39_Actor .
           '
-          sources:
-            - id: zbz
-              field: 651$a
+
+        - id: represented_event
+          label: Represented Event
+          optional: True
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E5_Event .
+          '
+
+        - id: represented_group
+          label: Represented Group
+          optional: True
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E74_Group .
+          '
+
+        - id: represented_place
+          label: Represented Place
+          optional: True
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E53_Place .
+          '
