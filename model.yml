@@ -15,8 +15,8 @@
           field: 655$a
     
     - id: artwork_medium
-      query: '
       label: Medium
+      query: '
         $subject crm:P2_has_type ?value .
         ?value crm:P2_has_type sari:medium ;
           rdfs:label ?label .        
@@ -31,6 +31,18 @@
         $subject crm:P128_carries ?value .
       '
       children:
+        - id: work_creation
+          label: Creation
+          query: '
+            $subject crm:P94i_was_created_by ?value .
+          '
+          children:
+            - id: work_creator
+              label: Artist/Creator
+              query: '
+               $subject crm:P14_carried_out_by ?value .
+              '
+
         - id: represented_place
           label: Represented Place
           query: '
