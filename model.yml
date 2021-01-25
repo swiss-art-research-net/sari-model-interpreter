@@ -1,0 +1,42 @@
+- id: artwork
+  label: Artwork
+  type: crm:E22_Man-Made_Object
+  children:
+
+    - id: artwork_genre
+      label: Genre
+      query: '
+        $subject crm:P2_has_type ?value .
+        ?value crm:P2_has_type sari:genre ;
+          rdfs:label ?label .        
+      '
+      sources:
+        - id: zbz
+          field: 655$a
+    
+    - id: artwork_medium
+      query: '
+      label: Medium
+        $subject crm:P2_has_type ?value .
+        ?value crm:P2_has_type sari:medium ;
+          rdfs:label ?label .        
+      '
+      sources:
+        - id: zbz
+          field: 245$h
+
+    - id: work
+      label: Work
+      query: '
+        $subject crm:P128_carries ?value .
+      '
+      children:
+        - id: represented_place
+          label: Represented Place
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E53_Place
+          '
+          sources:
+            - id: zbz
+              field: 651$a
