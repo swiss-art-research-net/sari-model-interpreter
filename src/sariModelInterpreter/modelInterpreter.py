@@ -52,14 +52,15 @@ def compileQuery(node, **kwargs):
     OPTIONAL { $subject crm:P128_carries/crm:P94i_was_created_by/crm:P14_carried_out_by ?value_work_creator . }
     }
 
-    >>> print(compileQuery(node, distinct=True, limit=10, select=['?subject','?value_work_creator']))
-    SELECT DISTINCT ?subject ?value_work_creator {
+    >>> print(compileQuery(node, distinct=True, limit=10, select=['work_creator']))
+    SELECT DISTINCT ?value_work_creator {
     $subject a crm:E22_Human-Made_Object .
     $subject crm:P128_carries ?value_work .
     $subject crm:P128_carries/crm:P94i_was_created_by ?value_work_creation .
     OPTIONAL { $subject crm:P128_carries/crm:P94i_was_created_by/crm:P14_carried_out_by ?value_work_creator . }
     } LIMIT 10
     """
+    
     query = "SELECT "
     
     if 'distinct' in kwargs:
@@ -67,7 +68,7 @@ def compileQuery(node, **kwargs):
             query += "DISTINCT "
     
     if 'select' in kwargs:
-        variables = ' '.join(kwargs['select'])
+        variables = ' '.join(namespaceSelectsForNode(kwargs['select'], node))
     else:
         variables = "$subject " + ' '.join(getNamespacedValuesAndLabels(node))    
     
@@ -85,7 +86,6 @@ def compileQuery(node, **kwargs):
 
 def getNamespacedValuesAndLabels(node):
 
-    
     def getQueries(children):
         for child in children:
             if 'query' in child:
@@ -102,6 +102,50 @@ def getNamespacedValuesAndLabels(node):
     valuesAndLabels = list(set(matches))
     valuesAndLabels.sort()
     return valuesAndLabels
+
+
+def getQueryForId(id, node):
+    
+    def traverseNode(id, node):
+        if node['id'] == id:
+            query.append(node['query'])
+        elif 'children' in node:
+            for child in node['children']:
+                traverseNode(id, child)
+
+    query = []
+    traverseNode(id, node)
+    
+    if len(query):
+        return query[0]
+    else:
+        return False
+
+def namespaceSelectsForNode(selects, node):
+    """
+    Takes list of ids to select as SPARQL variables and returns namespaced variables
+
+    >>> node = {"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value . ?value rdfs:label ?label" }] }] }]}
+    >>> namespaceSelectsForNode(['work_creation'], node)
+    ['?value_work_creation']
+
+    >>> namespaceSelectsForNode(['work_creator'], node)
+    ['?value_work_creator', '?label_work_creator']
+
+    >>> namespaceSelectsForNode(['custom_variable', 'work_creator'], node)
+    ['?custom_variable', '?value_work_creator', '?label_work_creator']
+    """
+    namespacedSelects = []
+    for select in selects:
+        query = getQueryForId(select, node)
+        if query:
+            namespacedSelects.append("?value_%s" % select)
+            if '?label' in query:
+                namespacedSelects.append("?label_%s" % select)
+        else:
+            namespacedSelects.append("?" + select)
+            
+    return namespacedSelects
 
 def namespaceVariablesInQuery(query, id):
     """
