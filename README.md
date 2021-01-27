@@ -9,6 +9,6 @@ A parser for YAML representations of a CIDOC-CRM data models with interpreter to
 
 ## Todos
 
-- Generate query for all children
+- Generate query for all children √
 - Generate query for given ID and parent
 - Generate field definitions for given ID and parent
