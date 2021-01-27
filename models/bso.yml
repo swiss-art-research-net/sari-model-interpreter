@@ -13,6 +13,20 @@
           rdfs:label ?label .        
       '
     
+    - id: artwork_dimension
+      label: Dimension
+      type: E54_Dimension
+      query: '
+        $subject crm:P43_has_dimension ?value .
+      '
+    
+    - id: artwork_material
+      label: Material
+      type: E57_Material
+      query: '
+        $subject crm:P45_consists_of ?value .
+      '
+
     - id: artwork_medium
       label: Medium
       type: crm:E55_Type
@@ -178,3 +192,48 @@
               query: '
                 $subject crmdig:L54_is_same-as ?value .
               '
+
+- id: person
+  label: Person/Actor
+  type: crm:E39_Actor
+  children:
+    - id: person_full_name
+      label: Full Name
+      type: crm:E33_E41_Linguistic_Appellation
+      query: '
+        $subject crm:P1_is_identified_by ?value .
+      '
+      children:
+        - id: person_name
+          type: crm:E33_E41_Linguistic_Appellation
+          label: Name
+          optional: True
+          query: '
+            $subject crm:P106_is_composed_of ?value .
+            ?value crm:P2_has_type aat:300266386
+          '
+    - id: person_same_as
+      type: crm:E39_Actor
+      optional: True
+      query: '
+        $subject crmdig:L54_is_same-as ?value .
+      '
+
+
+- id: group
+  label: Group
+  type: crm:E74_Group
+  children:
+    - id: group_name
+      label: Group Name
+      type: crm:E33_E41_Linguistic_Appellation
+      query: '
+        $subject crm:P1_is_identified_by ?value .
+        ?value crm:P2_has_type aat:300404670 .
+      '
+    - id: group_same_as
+      type: crm:E74_Group
+      optional: True
+      query: '
+        $subject crmdig:L54_is_same-as ?value .
+      '
