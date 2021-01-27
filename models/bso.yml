@@ -81,6 +81,13 @@
             $subject crm:P138_represents ?value .
             ?value a crm:E39_Actor .
           '
+          children:
+            - id: represented_actor_same_as
+              type: crm:E39_Actor
+              optional: True
+              query: '
+                $subject crmdig:L54_is_same-as ?value .
+              '
 
         - id: represented_event
           label: Represented Event
@@ -90,6 +97,25 @@
             $subject crm:P138_represents ?value .
             ?value a crm:E5_Event .
           '
+          children:
+            - id: represented_event_same_as
+              type: crm:E5_Event
+              optional: True
+              query: '
+                $subject crmdig:L54_is_same-as ?value .
+              '
+            - id: represented_event_time-span
+              type: crm:E52_Time-Span
+              optional: True
+              query: '
+                $subject crm:P4_has_time-span ?value .
+              '
+            - id: represented_event_place
+              type: crm:E53_Place
+              optional: True
+              query: '
+                $subject crm:P7_took_place_at ?value .
+              '
 
         - id: represented_group
           label: Represented Group
@@ -99,6 +125,13 @@
             $subject crm:P138_represents ?value .
             ?value a crm:E74_Group .
           '
+          children:
+            - id: represented_group_same_as
+              type: crm:E74_Group
+              optional: True
+              query: '
+                $subject crmdig:L54_is_same-as ?value .
+              '
 
         - id: represented_place
           label: Represented Place
@@ -108,6 +141,18 @@
             $subject crm:P138_represents ?value .
             ?value a crm:E53_Place .
           '
+          children:
+            - id: represented_place_same_as
+              type: crm:E53_Place
+              optional: True
+              query: '
+                $subject crmdig:L54_is_same-as ?value .
+              '
+            - id: represented_place_note
+              optional: True
+              query: '
+                $subject crm:P3_has_note ?value .
+              '
 
         - id: represented_period
           label: Represented Period
@@ -126,3 +171,10 @@
             $subject crm:P138_represents ?value .
             ?value a crm:E55_Type .
           '
+          children:
+            - id: represented_type_same_as
+              type: crm:E55_Type
+              optional: True
+              query: '
+                $subject crmdig:L54_is_same-as ?value .
+              '
