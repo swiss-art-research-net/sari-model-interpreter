@@ -44,11 +44,27 @@
               label: Artist/Creator (role)
               optional: True
               query: '
-                $subject crm:P9_consists_of ?subcreation .
+                $subject crm:P9_consists_of ?subcreation ;
+                  crm:P14_carried_out_by ?subcreation_person .
                 ?subcreation crm:P2_has_type ?subcreation_type ;
                   crm:P14_carried_out_by ?subcreation_person .
                 ?subcreation_type rdfs:label ?subcreation_type_label .
-                ?subcreation_person rdfs:label ?subcreation_person_label .
+                ?subcreation_person a crm:E39_Actor ;
+                  rdfs:label ?subcreation_person_label .
+                BIND(CONCAT(?subcreation_person_label, " (" , ?subcreation_type_label, ")") as ?value)
+              '
+
+            - id: work_creator_group_with_role
+              label: Group/Creator (role)
+              optional: True
+              query: '
+                $subject crm:P9_consists_of ?subcreation;
+                  crm:P14_carried_out_by ?subcreation_person .
+                ?subcreation crm:P2_has_type ?subcreation_type ;
+                  crm:P14_carried_out_by ?subcreation_person .
+                ?subcreation_type rdfs:label ?subcreation_type_label .
+                ?subcreation_person a crm:E74_Group ;
+                  rdfs:label ?subcreation_person_label .
                 BIND(CONCAT(?subcreation_person_label, " (" , ?subcreation_type_label, ")") as ?value)
               '
 
@@ -82,4 +98,20 @@
           query: '
             $subject crm:P138_represents ?value .
             ?value a crm:E53_Place .
+          '
+
+        - id: represented_period
+          label: Represented Period
+          optional: True
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E4_Period .
+          '
+
+        - id: represented_type
+          label: Represented Type
+          optional: True
+          query: '
+            $subject crm:P138_represents ?value .
+            ?value a crm:E55_Type .
           '
