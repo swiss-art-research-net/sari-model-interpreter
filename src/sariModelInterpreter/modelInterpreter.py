@@ -23,7 +23,7 @@ def compilePath(child, parentPath=''):
     query = query.replace(subjectPath, completePath)
     
     # Namespace variables by prefixing them with (unique) field id
-    query = re.sub(r'\?([^\s/,:,\-\\\(\)]*)', r'?\1_' + child['id'], query)
+    query = namespaceVariablesInQuery(query, child['id'])
     
     if optional:
         query = "OPTIONAL { %s }\n" % query
@@ -34,27 +34,87 @@ def compilePath(child, parentPath=''):
     
     return query
 
-
-
-def compileQuery(node):
+def compileQuery(node, **kwargs):
     """
+    Generates a SPARQL query starting from a given node as subject and traversing through all children
+    
+    Keyword arguments:
+    distinct -- use distinct keyword in select (default False)
+    limit -- a limit for the query (default None)
+    select -- a list of variables to use in the select statement (default None, uses value and label variables from model)
+
     >>> node = {"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}
     >>> print(compileQuery(node))
-    SELECT * WHERE {
-    $subject a crm:E22_Human-Made_Object
+    SELECT $subject ?value_work ?value_work_creation ?value_work_creator {
+    $subject a crm:E22_Human-Made_Object .
     $subject crm:P128_carries ?value_work .
     $subject crm:P128_carries/crm:P94i_was_created_by ?value_work_creation .
     OPTIONAL { $subject crm:P128_carries/crm:P94i_was_created_by/crm:P14_carried_out_by ?value_work_creator . }
     }
+
+    >>> print(compileQuery(node, distinct=True, limit=10, select=['?subject','?value_work_creator']))
+    SELECT DISTINCT ?subject ?value_work_creator {
+    $subject a crm:E22_Human-Made_Object .
+    $subject crm:P128_carries ?value_work .
+    $subject crm:P128_carries/crm:P94i_was_created_by ?value_work_creation .
+    OPTIONAL { $subject crm:P128_carries/crm:P94i_was_created_by/crm:P14_carried_out_by ?value_work_creator . }
+    } LIMIT 10
     """
-    query = "SELECT * WHERE {\n"
-    query = query + "$subject a " + node['type'] + "\n"
+    query = "SELECT "
+    
+    if 'distinct' in kwargs:
+        if kwargs['distinct'] == True:
+            query += "DISTINCT "
+    
+    if 'select' in kwargs:
+        variables = ' '.join(kwargs['select'])
+    else:
+        variables = "$subject " + ' '.join(getNamespacedValuesAndLabels(node))    
+    
+    query += variables
+    query += " {\n"
+    
+    query += "$subject a " + node['type'] + " .\n"
     for child in node['children']:
-        query = query + compilePath(child)
+        query += compilePath(child)
         
-    query = query+"}"
+    query += "}"
+    if 'limit' in kwargs:
+         query += " LIMIT " + str(kwargs['limit'])
     return query
 
+def getNamespacedValuesAndLabels(node):
+
+    
+    def getQueries(children):
+        for child in children:
+            if 'query' in child:
+                queries.append(namespaceVariablesInQuery(child['query'], child['id']))
+            if 'children' in child:
+                getQueries(child['children'])
+                
+    queries = []
+    if 'children' in node:
+        getQueries(node['children'])
+        
+    allQueries = ' '.join(queries)
+    matches = re.findall(r'((?:\?value[^\s/,:,\-\\\(\)]*)|(?:\?label[^\s/,:,\-\\\(\)]*))', allQueries)
+    valuesAndLabels = list(set(matches))
+    valuesAndLabels.sort()
+    return valuesAndLabels
+
+def namespaceVariablesInQuery(query, id):
+    """
+    Adds the id as namespace to all non-bound variables 
+
+    >>> namespaceVariablesInQuery("$subject crm:P128_carries ?value", "work")
+    '$subject crm:P128_carries ?value_work'
+
+    >>> namespaceVariablesInQuery("$subject crm:P9_consists_of ?subcreation; crm:P14_carried_out_by ?value .", "work_creation")
+    '$subject crm:P9_consists_of ?subcreation_work_creation; crm:P14_carried_out_by ?value_work_creation .'
+
+    """
+    return re.sub(r'\?([^\s/,:;,\-\\\(\)]*)', r'?\1_' + id, query)
 
 def parseModelFromFile(inputFile):
     """
