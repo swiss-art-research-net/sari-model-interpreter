@@ -60,7 +60,7 @@ def parseModelFromFile(inputFile):
     """
     Reads input model from filepath
 
-    >>> model = parseModelFromFile('../models/bso.yml')
+    >>> model = parseModelFromFile('../../models/bso.yml')
     >>> print(type(model))
     <class 'list'>
     """
@@ -72,12 +72,13 @@ def verifyModel(model):
     """
     Checks if a given model is valid. Returns "Ok" if yes. Otherwise lists errors
 
-    >>> model = [{"id": "artwork", "query": "$subject a crm:E22_Man-Made_Object .", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
+    >>> model = [{"id": "artwork", "type": "crm:E22_Man-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
     >>> verifyModel(model)
     'Ok'
-    >>> model = [{"id": "artwork", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creation", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
+    >>> model = [{"id": "artwork", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?values .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creation", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
     >>> print(verifyModel(model))
-    No query present in node artwork
+    No query or type present in node artwork
+    No ?value found in query of work
     Duplicate id work_creation
     """
     
@@ -93,8 +94,13 @@ def verifyModel(model):
         else:
             errors.append("Duplicate id %s" % id)
 
-        if not 'query' in node:
-            errors.append("No query present in node %s" % id)
+        if not 'query' in node and not 'type' in node:
+            errors.append("No query or type present in node %s" % id)
+        elif 'query' in node:
+            if not re.search(r'\$subject\s', node['query']):
+                errors.append("No $subject found in query of %s" %id)
+            if not re.search(r'\?value[\s|\)]', node['query']):
+                errors.append("No ?value found in query of %s" %id)
 
         if 'children' in node:
             for child in node['children']:
