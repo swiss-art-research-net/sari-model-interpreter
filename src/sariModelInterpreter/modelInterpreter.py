@@ -75,11 +75,16 @@ def verifyModel(model):
     >>> model = [{"id": "artwork", "type": "crm:E22_Man-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
     >>> verifyModel(model)
     'Ok'
+    
     >>> model = [{"id": "artwork", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?values .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creation", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
     >>> print(verifyModel(model))
     No query or type present in node artwork
     No ?value found in query of work
     Duplicate id work_creation
+
+    >>> model = parseModelFromFile('../../models/bso.yml')
+    >>> verifyModel(model)
+    'Ok'
     """
     
     def verifyModelNode(node):
