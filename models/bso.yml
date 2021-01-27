@@ -9,7 +9,7 @@
       optional: True
       query: '
         $subject crm:P2_has_type ?value .
-        ?value crm:P2_has_type sari:genre ;
+        ?value crm:P2_has_type aat:300056462 ;
           rdfs:label ?label .        
       '
     
@@ -19,7 +19,7 @@
       optional: True
       query: '
         $subject crm:P2_has_type ?value .
-        ?value crm:P2_has_type sari:medium ;
+        ?value crm:P2_has_type aat:300014842 ;
           rdfs:label ?label .        
       '
 
