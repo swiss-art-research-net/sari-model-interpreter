@@ -5,6 +5,7 @@
 
     - id: artwork_genre
       label: Genre
+      type: crm:E55_Type
       optional: True
       query: '
         $subject crm:P2_has_type ?value .
@@ -14,6 +15,7 @@
     
     - id: artwork_medium
       label: Medium
+      type: crm:E55_Type
       optional: True
       query: '
         $subject crm:P2_has_type ?value .
@@ -23,18 +25,21 @@
 
     - id: work
       label: Work
+      type: crm:E36_Visual_Item
       query: '
         $subject crm:P128_carries ?value .
       '
       children:
         - id: work_creation
           label: Creation
+          type: crm:E65_Creation
           query: '
             $subject crm:P94i_was_created_by ?value .
           '
           children:
             - id: work_creator
               label: Artist/Creator
+              type: crm:E39_Actor
               optional: True
               query: '
                $subject crm:P14_carried_out_by ?value .
@@ -69,7 +74,8 @@
               '
 
         - id: represented_actor
-          label: Represented Place
+          label: Represented Actor
+          type: crm:E39_Actor
           optional: True
           query: '
             $subject crm:P138_represents ?value .
@@ -78,6 +84,7 @@
 
         - id: represented_event
           label: Represented Event
+          type: crm:E5_Event
           optional: True
           query: '
             $subject crm:P138_represents ?value .
@@ -86,6 +93,7 @@
 
         - id: represented_group
           label: Represented Group
+          type: crm:E74_Group
           optional: True
           query: '
             $subject crm:P138_represents ?value .
@@ -94,6 +102,7 @@
 
         - id: represented_place
           label: Represented Place
+          type: crm:E53_Place
           optional: True
           query: '
             $subject crm:P138_represents ?value .
@@ -102,6 +111,7 @@
 
         - id: represented_period
           label: Represented Period
+          type: crm:E4_Period
           optional: True
           query: '
             $subject crm:P138_represents ?value .
@@ -110,6 +120,7 @@
 
         - id: represented_type
           label: Represented Type
+          type: crm:E55_Type
           optional: True
           query: '
             $subject crm:P138_represents ?value .
