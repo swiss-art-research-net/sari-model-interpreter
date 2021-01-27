@@ -85,6 +85,13 @@ def compileQuery(node, **kwargs):
     return query
 
 def getNamespacedValuesAndLabels(node):
+    """"
+    Returns a list of all value and label variables in a model's children queries and adds the node's id as namespace
+
+    >>> node = {"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value . ?value rdfs:label ?label" }] }] }]}
+    >>> getNamespacedValuesAndLabels(node)
+    ['?label_work_creator', '?value_work', '?value_work_creation', '?value_work_creator']
+    """
 
     def getQueries(children):
         for child in children:
@@ -105,9 +112,21 @@ def getNamespacedValuesAndLabels(node):
 
 
 def getQueryForId(id, node):
+    """
+    Traverses a node and its children and returns the query for the node that matches the given id.
+    Returns False if the given node does not contain a query
+
+    >>> node = {"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value . ?value rdfs:label ?label" }] }] }]}
+    >>> getQueryForId("work_creator", node)
+    '$subject crm:P14_carried_out_by ?value . ?value rdfs:label ?label'
+
+    >>> node = {"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value . ?value rdfs:label ?label" }] }] }]}
+    >>> getQueryForId("artwork", node)
+    False
+    """
     
     def traverseNode(id, node):
-        if node['id'] == id:
+        if node['id'] == id and 'query' in node:
             query.append(node['query'])
         elif 'children' in node:
             for child in node['children']:
