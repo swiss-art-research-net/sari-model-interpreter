@@ -68,6 +68,47 @@ def parseModelFromFile(inputFile):
         modelData = yaml.safe_load(f.read())
     return modelData
 
+def verifyModel(model):
+    """
+    Checks if a given model is valid. Returns "Ok" if yes. Otherwise lists errors
+
+    >>> model = [{"id": "artwork", "query": "$subject a crm:E22_Man-Made_Object .", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
+    >>> verifyModel(model)
+    'Ok'
+    >>> model = [{"id": "artwork", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creation", "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }] }]
+    >>> print(verifyModel(model))
+    No query present in node artwork
+    Duplicate id work_creation
+    """
+    
+    def verifyModelNode(node):
+        id = None
+        if not 'id' in node:
+            errors.append("No id present in node")
+
+        id = node['id']
+
+        if not id in ids:
+            ids.append(id)
+        else:
+            errors.append("Duplicate id %s" % id)
+
+        if not 'query' in node:
+            errors.append("No query present in node %s" % id)
+
+        if 'children' in node:
+            for child in node['children']:
+                verifyModelNode(child)
+
+    ids = []
+    errors = []
+    for node in model:
+        verifyModelNode(node)
+    
+    if len(errors):
+        return "\n".join(errors)
+    else:
+        return "Ok"
 
 if __name__ == '__main__':
     import doctest
