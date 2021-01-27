@@ -118,7 +118,7 @@
               query: '
                 $subject crmdig:L54_is_same-as ?value .
               '
-            - id: represented_event_time-span
+            - id: represented_event_time_span
               type: crm:E52_Time-Span
               optional: True
               query: '
