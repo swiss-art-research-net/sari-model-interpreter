@@ -87,6 +87,26 @@
                 BIND(CONCAT(?subcreation_person_label, " (" , ?subcreation_type_label, ")") as ?value)
               '
 
+            - id: work_creation_subcreation
+              label: Work subcreation
+              optional: True
+              query: '
+                $subject crm:P9_consists_of ?value .
+              '
+              children:
+                - id: work_creation_subcreation_type
+                  label: Work subcreation type
+                  optional: True
+                  query: '
+                    $subject crm:P2_has_type ?value .
+                  '
+                - id: work_creation_subcreation_actor
+                  label: Work subcreation actor
+                  optional: True
+                  query: '
+                    $subject crm:P14_carried_out_by ?value .
+                  '
+
         - id: represented_actor
           label: Represented Actor
           type: crm:E39_Actor

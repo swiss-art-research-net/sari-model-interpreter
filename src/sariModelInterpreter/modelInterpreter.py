@@ -126,7 +126,7 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     query += "}"
 
     if len(group):
-        groupBy = ['$subject'] + [n for n in nodeIds if n not in group]
+        groupBy = ['$subject'] + ["?value_" + n for n in nodeIds if n not in group]
         query += " GROUP BY " + " ".join(groupBy)
     
     if 'limit' in kwargs:
