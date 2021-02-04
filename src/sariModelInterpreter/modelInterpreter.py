@@ -60,22 +60,28 @@ def compilePath(child, parentPath=''):
 def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     """
     Generates a SPARQL query for a given subject and a list of children('s children)
+    
+    Keyword arguments:
+    group -- list of variables to concatinate as group
+    optional -- the variables that should be included as optional
+    limit -- a limit for the query (default None)
+
     >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
-    >>> query = compileQueryForNodes(model, 'artwork',['work_creator'])
-    >>> print(query)
-    SELECT ($subject as ?artwork) (?value_work_creator as ?work_creator) { 
+    >>> print( compileQueryForNodes(model, 'artwork',['work_creator']) )
+    SELECT ($subject as ?artwork) (?value_work_creator as ?work_creator) {
     $subject crm:P128_carries ?value_work .
     ?value_work crm:P94i_was_created_by ?value_work_creation .
     ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
     }
     
-    >>> query = compileQueryForNodes(model, 'artwork',['work_creator'], group=['work_creator'])
-    >>> print(query)
-    SELECT ($subject as ?artwork) (GROUP_CONCAT(?value_work_creator) as ?work_creator) { 
+    >>> print( compileQueryForNodes(model, 'artwork',['work_creator'], group=['work_creator'], limit=10))
+    SELECT ($subject as ?artwork) (GROUP_CONCAT(?value_work_creator) as ?work_creator) {
     $subject crm:P128_carries ?value_work .
     ?value_work crm:P94i_was_created_by ?value_work_creation .
     ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
     } GROUP BY $subject
+    LIMIT 10
+   
     """
     root = getNodeWithId(model, rootId)
     graph = convertModelToGraph(model)
@@ -107,12 +113,25 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
         else:
             query += "(GROUP_CONCAT(?value_%s) as ?%s) " % (nodeId, nodeId)
     
-    
-    query += "{ \n" + "\n".join(pathQueries) + "\n}"
+    query += "{\n"
+
+    for nodeId in nodeIds:
+        path = findPath(graph, rootId, nodeId)
+        pathQuery = getPathQuery(model, path)
+        if nodeId in optional:
+            query += "OPTIONAL {\n\t" + pathQuery.replace("\n", "\n\t") + "\n\t}\n"
+        else:
+            query += pathQuery + "\n"
+
+    query += "}"
+
     if len(group):
         groupBy = ['$subject'] + [n for n in nodeIds if n not in group]
         query += " GROUP BY " + " ".join(groupBy)
-            
+    
+    if 'limit' in kwargs:
+        query += "\nLIMIT %d" % kwargs['limit']
+
     return query
 
 def compileQuery(node, **kwargs):
