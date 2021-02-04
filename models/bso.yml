@@ -12,6 +12,13 @@
         ?value crm:P2_has_type aat:300056462 ;
           rdfs:label ?label .        
       '
+
+    - id: artwork_collection
+      label: Collection
+      optional: True
+      query: '
+        $subject crm:P109_has_former_or_current_curator ?value .
+      '
     
     - id: artwork_dimension
       label: Dimension
@@ -36,6 +43,30 @@
         ?value crm:P2_has_type aat:300014842 ;
           rdfs:label ?label .        
       '
+    
+    - id: production
+      label: Production
+      type: crm:E12_Production
+      query: '
+        $subject crm:P108i_was_produced_by ?value .
+      '
+      children:
+        - id: production_date
+          label: Production Date
+          type: crm:E52_Time-Span
+          optional: True
+          query: '
+            $subject crm:P4_has_time-span ?value .
+          '
+          children:
+            - id: production_date_formatted
+              label: Production Date
+              optional: True
+              query: '
+                $subject crm:P82a_begin_of_the_begin ?from ;
+                  crm:P82b_end_of_the_end ?to .
+                BIND(IF(YEAR(?from) != YEAR(?to), YEAR(?from), CONCAT(STR(YEAR(?from)), "-", STR(YEAR(?to)))) as ?value) 
+              '
 
     - id: work
       label: Work
@@ -51,6 +82,23 @@
             $subject crm:P94i_was_created_by ?value .
           '
           children:
+            - id: work_creation_date
+              label: Creation Date
+              type: crm:E52_Time-Span
+              optional: True
+              query: '
+                $subject crm:P4_has_time-span ?value .
+              '
+              children:
+                - id: work_creation_date_formatted
+                  label: Creation Date
+                  optional: True
+                  query: '
+                    $subject crm:P82a_begin_of_the_begin ?from ;
+                      crm:P82b_end_of_the_end ?to .
+                    BIND(IF(YEAR(?from) != YEAR(?to), YEAR(?from), CONCAT(STR(YEAR(?from)), "-", STR(YEAR(?to)))) as ?value) 
+                  '
+
             - id: work_creator
               label: Artist/Creator
               type: crm:E39_Actor
