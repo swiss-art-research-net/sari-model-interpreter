@@ -2,6 +2,29 @@ import re
 import sys
 import yaml
 
+
+def convertModelToGraph(model):
+    """
+    Traverses a model and returns a graph representation containing the ids
+    >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
+    >>> convertModelToGraph(model)
+    {'artwork': ['work'], 'work': ['work_creation'], 'work_creation': ['work_creator'], 'work_creator': []}
+    """
+
+    def fillGraph(node):
+        if 'children' in node:
+            graph[node['id']] = [d['id'] for d in node['children']]
+            for child in node['children']:
+                fillGraph(child)
+        else:
+            graph[node['id']] = []   
+          
+    graph = {}  
+    for node in model:
+        fillGraph(node)
+        
+    return graph
+
 def compilePath(child, parentPath=''):
     """
     Generates the query paths for a given child and all its children
@@ -32,6 +55,33 @@ def compilePath(child, parentPath=''):
         for c in child['children']:
             query = query + "\n" + compilePath(c, completePath)
     
+    return query
+
+def compileQueryForNodes(model, rootId, nodeIds):
+    """
+    Generates a SPARQL query for a given subject and a list of children('s children)
+    >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
+    >>> query = compileQueryForNodes(model, 'artwork',['work_creator'])
+    >>> print(query)
+    SELECT ($subject as ?artwork) (?value_work_creator as ?work_creator) { 
+    $subject crm:P128_carries ?value_work .
+    ?value_work crm:P94i_was_created_by ?value_work_creation .
+    ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
+    }
+    """
+    root = getNodeWithId(model, rootId)
+    graph = convertModelToGraph(model)
+    paths = []
+    pathQueries = []
+    for nodeId in nodeIds:
+        paths.append(findPath(graph, rootId, nodeId))
+    for path in paths:
+        pathQueries.append(getPathQuery(model, path))
+        
+    query = "SELECT ($subject as ?%s) " % rootId
+    for nodeId in nodeIds:
+        query += "(?value_%s as ?%s) " % (nodeId, nodeId)
+    query += "{ \n" + "\n".join(pathQueries) + "\n}"
     return query
 
 def compileQuery(node, **kwargs):
@@ -84,6 +134,55 @@ def compileQuery(node, **kwargs):
          query += " LIMIT " + str(kwargs['limit'])
     return query
 
+def findPath(graph, start, end, path=[]):
+    """
+    Returns the path in a given graph as a list of ids
+    >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
+    >>> graph = convertModelToGraph(model)
+    >>> findPath(graph, 'work', 'work_creator')
+    ['work', 'work_creation', 'work_creator']
+    """
+    path = path + [start]
+    if start == end:
+        return path
+    if not start in graph:
+        return None
+    for node in graph[start]:
+        if node not in path:
+            newPath = findPath(graph, node, end, path)
+            if newPath:
+                return newPath
+    return None
+    
+
+
+def getPathQuery(model, path):
+    """
+    Generates a SPARQL query path based on the path in a model
+    >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
+    >>> queryPath = getPathQuery(model, ['work', 'work_creation', 'work_creator'])
+    >>> print(queryPath)
+    $subject crm:P94i_was_created_by ?value_work_creation .
+    ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
+    """
+    nodes = {}
+    queryPath = ''
+    
+    for nodeid in path:
+        nodes[nodeid] = getNodeWithId(model, nodeid)
+        
+    prevId = False
+    for step in path[1:]:
+        query = namespaceVariablesInQuery(nodes[step]['query'], step)
+        if prevId:
+            query = query.replace("$subject", "?value_" + prevId)
+        queryPath += query
+        if step != path[-1]:
+            queryPath += "\n"
+        prevId = step
+    
+    return queryPath
+
 def getNamespacedValuesAndLabels(node):
     """"
     Returns a list of all value and label variables in a model's children queries and adds the node's id as namespace
@@ -110,6 +209,29 @@ def getNamespacedValuesAndLabels(node):
     valuesAndLabels.sort()
     return valuesAndLabels
 
+def getNodeWithId(model, id):
+    """
+    Traverses a model and returns the node with a given id
+    >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
+    >>> getNodeWithId(model, "work_creation")
+    {'id': 'work_creation', 'query': '$subject crm:P94i_was_created_by ?value .', 'children': [{'id': 'work_creator', 'optional': True, 'query': '$subject crm:P14_carried_out_by ?value .'}]}
+    """
+    
+    def traverseNode(id, node):
+        if node['id'] == id:
+            nodeToReturn.append(node)
+        elif 'children' in node:
+            for child in node['children']:
+                traverseNode(id, child)
+    
+    nodeToReturn = []
+    for node in model:
+        traverseNode(id, node)
+    
+    if len(nodeToReturn):
+        return nodeToReturn[0]
+    else:
+        return False
 
 def getQueryForId(id, node):
     """
