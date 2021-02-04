@@ -63,9 +63,10 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     
     Keyword arguments:
     group -- list of variables to concatinate as group
-    inject -- a list of dicts with id and query to be inserted into the generated query
+    inject -- a list of dicts with id and query to be inserted into the generated query (use $ for variables that should not be namespaced)
     optional -- the variables that should be included as optional
     limit -- a limit for the query (default None)
+    unselect -- a list of variables to exclude from select
 
     >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
     >>> print( compileQueryForNodes(model, 'artwork',['work_creator']) )
@@ -101,14 +102,20 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
         optional = kwargs['optional']
     else:
         optional = []
+    
+    if 'unselect' in kwargs:
+        unselect = kwargs['unselect']
+    else:
+        unselect = []
         
     query = "SELECT ($subject as ?%s) " % rootId
     
     for nodeId in nodeIds + [d['id'] for d in inject]:
-        if nodeId not in group:
-            query += "(?value_%s as ?%s) " % (nodeId, nodeId)
-        else:
-            query += "(GROUP_CONCAT(?value_%s) as ?%s) " % (nodeId, nodeId)
+        if nodeId not in unselect:
+            if nodeId not in group:
+                query += "(?value_%s as ?%s) " % (nodeId, nodeId)
+            else:
+                query += "(GROUP_CONCAT(?value_%s) as ?%s) " % (nodeId, nodeId)
         
     query += "{\n"
 
