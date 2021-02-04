@@ -96,15 +96,6 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     else:
         optional = []
         
-    paths = []
-    pathQueries = []
-    
-    for nodeId in nodeIds:
-        paths.append(findPath(graph, rootId, nodeId))
-        
-    for path in paths:
-        pathQueries.append(getPathQuery(model, path))
-        
     query = "SELECT ($subject as ?%s) " % rootId
     
     for nodeId in nodeIds:
@@ -117,6 +108,8 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
 
     for nodeId in nodeIds:
         path = findPath(graph, rootId, nodeId)
+        if not path:
+            raise ValueError("Could not find a path from %s to %s in given model" % (rootId, nodeId))
         pathQuery = getPathQuery(model, path)
         if nodeId in optional:
             query += "OPTIONAL {\n\t" + pathQuery.replace("\n", "\n\t") + "\n\t}\n"
@@ -281,7 +274,7 @@ def getNodeWithId(model, id):
     if len(nodeToReturn):
         return nodeToReturn[0]
     else:
-        return False
+        raise ValueError("ID %s not present in given model" % id)
 
 def getQueryForId(id, node):
     """
