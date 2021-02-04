@@ -57,7 +57,7 @@ def compilePath(child, parentPath=''):
     
     return query
 
-def compileQueryForNodes(model, rootId, nodeIds):
+def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     """
     Generates a SPARQL query for a given subject and a list of children('s children)
     >>> model = [{"id": "artwork", "label": "Artwork", "type": "crm:E22_Human-Made_Object", "children": [{"id": "work", "type": "crm:E36_Visual_Item", "query": "$subject crm:P128_carries ?value .", "children": [{"id": "work_creation", "query": "$subject crm:P94i_was_created_by ?value .", "children" : [{"id": "work_creator", "optional": True, "query" : "$subject crm:P14_carried_out_by ?value ." }] }] }]}]
@@ -68,20 +68,51 @@ def compileQueryForNodes(model, rootId, nodeIds):
     ?value_work crm:P94i_was_created_by ?value_work_creation .
     ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
     }
+    
+    >>> query = compileQueryForNodes(model, 'artwork',['work_creator'], group=['work_creator'])
+    >>> print(query)
+    SELECT ($subject as ?artwork) (GROUP_CONCAT(?value_work_creator) as ?work_creator) { 
+    $subject crm:P128_carries ?value_work .
+    ?value_work crm:P94i_was_created_by ?value_work_creation .
+    ?value_work_creation crm:P14_carried_out_by ?value_work_creator .
+    } GROUP BY $subject
     """
     root = getNodeWithId(model, rootId)
     graph = convertModelToGraph(model)
+    
+    if 'group' in kwargs:
+        group = kwargs['group']
+    else:
+        group = []
+    
+    if 'optional' in kwargs:
+        optional = kwargs['optional']
+    else:
+        optional = []
+        
     paths = []
     pathQueries = []
+    
     for nodeId in nodeIds:
         paths.append(findPath(graph, rootId, nodeId))
+        
     for path in paths:
         pathQueries.append(getPathQuery(model, path))
         
     query = "SELECT ($subject as ?%s) " % rootId
+    
     for nodeId in nodeIds:
-        query += "(?value_%s as ?%s) " % (nodeId, nodeId)
+        if nodeId not in group:
+            query += "(?value_%s as ?%s) " % (nodeId, nodeId)
+        else:
+            query += "(GROUP_CONCAT(?value_%s) as ?%s) " % (nodeId, nodeId)
+    
+    
     query += "{ \n" + "\n".join(pathQueries) + "\n}"
+    if len(group):
+        groupBy = ['$subject'] + [n for n in nodeIds if n not in group]
+        query += " GROUP BY " + " ".join(groupBy)
+            
     return query
 
 def compileQuery(node, **kwargs):
