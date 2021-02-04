@@ -63,6 +63,7 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     
     Keyword arguments:
     group -- list of variables to concatinate as group
+    inject -- a list of dicts with id and query to be inserted into the generated query
     optional -- the variables that should be included as optional
     limit -- a limit for the query (default None)
 
@@ -86,6 +87,11 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
     root = getNodeWithId(model, rootId)
     graph = convertModelToGraph(model)
     
+    if 'inject' in kwargs:
+        inject = kwargs['inject']
+    else:
+        inject = []
+    
     if 'group' in kwargs:
         group = kwargs['group']
     else:
@@ -98,13 +104,16 @@ def compileQueryForNodes(model, rootId, nodeIds, **kwargs):
         
     query = "SELECT ($subject as ?%s) " % rootId
     
-    for nodeId in nodeIds:
+    for nodeId in nodeIds + [d['id'] for d in inject]:
         if nodeId not in group:
             query += "(?value_%s as ?%s) " % (nodeId, nodeId)
         else:
             query += "(GROUP_CONCAT(?value_%s) as ?%s) " % (nodeId, nodeId)
-    
+        
     query += "{\n"
+
+    for node in inject:
+        query += namespaceVariablesInQuery(node['query'], node['id']) + "\n"
 
     for nodeId in nodeIds:
         path = findPath(graph, rootId, nodeId)
